@@ -4,16 +4,23 @@ import { createClient } from '@supabase/supabase-js';
 import { AiResponse } from '../../types'; // Vẫn cần types/index.ts
 import { PDFParse } from 'pdf-parse';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // --- GÓI CŨ ---
 import { GoogleGenerativeAI } from '@google/generative-ai'; 
 
 // Cấu hình worker cho pdf-parse (Giữ nguyên)
-const workerPath = path.resolve(
-  process.cwd(),
-  'node_modules',
-  'pdf-parse',
-  'lib',
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Dùng đường dẫn tương đối từ file code ---
+const workerPath = path.join(
+  __dirname, 
+  '..', 
+  '..', 
+  'node_modules', 
+  'pdf-parse', 
+  'lib', 
   'pdf.worker.js'
 );
 
