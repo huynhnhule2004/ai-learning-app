@@ -45,18 +45,11 @@ async function extractTextFromPdf(fileBuffer: Buffer): Promise<string> {
 // Hàm gọi API YouTube
 async function fetchYouTubeVideos(query: string): Promise<MediaSuggestion[]> {
     if (!YOUTUBE_API_KEY) return [];
-
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&key=${YOUTUBE_API_KEY}`;
-    
     try {
         const response = await fetch(url);
         const data = await response.json();
-
-        if (data.error) {
-             console.error("YouTube API Error:", data.error.message);
-             return [];
-        }
-
+        if (data.error) { console.error("YouTube API Error:", data.error.message); return []; }
         return data.items
             .filter((item: any) => item.id.videoId)
             .map((item: any) => ({
@@ -64,40 +57,24 @@ async function fetchYouTubeVideos(query: string): Promise<MediaSuggestion[]> {
                 url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
                 thumbnailUrl: item.snippet.thumbnails.high.url
             }));
-    } catch (e) {
-        console.error("Lỗi khi gọi YouTube API:", e);
-        return [];
-    }
+    } catch (e) { console.error("Lỗi khi gọi YouTube API:", e); return []; }
 }
 
 // Hàm gọi API Pexels
 async function fetchPexelsImages(query: string): Promise<MediaSuggestion[]> {
     if (!PEXELS_API_KEY) return [];
-
     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3`;
-    
     try {
-        const response = await fetch(url, {
-            headers: { Authorization: PEXELS_API_KEY },
-        });
+        const response = await fetch(url, { headers: { Authorization: PEXELS_API_KEY } });
         const data = await response.json();
-
-        if (data.error) {
-            console.error("Pexels API Error:", data.error);
-            return [];
-        }
-
+        if (data.error) { console.error("Pexels API Error:", data.error); return []; }
         return data.photos.map((photo: any) => ({
             title: `Ảnh của ${photo.photographer}`,
-            url: photo.url, // Link đến trang Pexels
-            thumbnailUrl: photo.src.medium // Link ảnh trực tiếp
+            url: photo.url,
+            thumbnailUrl: photo.src.medium
         }));
-    } catch (e) {
-        console.error("Lỗi khi gọi Pexels API:", e);
-        return [];
-    }
+    } catch (e) { console.error("Lỗi khi gọi Pexels API:", e); return []; }
 }
-
 
 // ===================================
 //          HÀM HANDLER CHÍNH
@@ -142,26 +119,47 @@ export default async function handler(
 
     const truncatedText = textContent.substring(0, 15000); 
     
-    // 2. Gọi GEMINI (CẬP NHẬT PROMPT: Thêm searchKeywords)
+    // 2. Gọi GEMINI (PROMPT CỰC KỲ NGHIÊM NGẶT)
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-pro", 
     });
 
+    // --- PROMPT ĐÃ ĐƯỢC LÀM NGHIÊM NGẶT HƠN VỀ correctAnswer ---
     const prompt = `
-      Bạn là một trợ lý học tập thông minh. Dựa vào văn bản được cung cấp, hãy thực hiện các yêu cầu sau:
-      1. Tóm tắt nội dung chính trong 3-5 câu (key "summary").
-      2. Tạo ra 3 câu hỏi trắc nghiệm (quiz) (key "quiz").
-      3. Tạo 2-3 từ khóa tìm kiếm (searchKeywords) tiếng Việt/Anh chất lượng cao nhất dựa trên nội dung cốt lõi của tài liệu.
+      Bạn là một trợ lý học tập thông minh. Dựa vào văn bản được cung cấp, hãy thực hiện 4 yêu cầu sau:
+      1. Tóm tắt nội dung chính CHI TIẾT (khoảng 7-10 câu) (key "summary").
+      2. Tạo ra 3 câu hỏi trắc nghiệm (quiz) (key "quiz"). Mỗi câu hỏi phải có:
+         - "question": string (Nội dung câu hỏi)
+         - "options": Mảng gồm EXACTLY 4 string (4 lựa chọn A, B, C, D)
+         - "correctAnswer": string (NỘI DUNG của đáp án đúng, PHẢI TRÙNG KHỚP 100% VỚI MỘT TRONG 4 options)
+      3. Tạo 2 từ khóa tìm kiếm (searchKeywords) tiếng Việt/Anh chất lượng cao.
+      4. Tạo một sơ đồ tư duy (mindMapMermaid) CỰC KỲ ĐƠN GIẢN (tối đa 10 nút) 
+         sử dụng cú pháp Mermaid 'graph TD'. 
+         
+         TUYỆT ĐỐI CHỈ DÙNG CÚ PHÁP CƠ BẢN NHẤT.
+         VÍ DỤ CÚ PHÁP ĐÚNG:
+         graph TD
+         A[Chủ đề] --> B(Ý 1)
+         A --> C(Ý 2)
+         B --> D(Chi tiết)
+
+         VÍ DỤ CÚ PHÁP SAI (KHÔNG DÙNG):
+         graph TD; A("Text") -- "Link text" --> B;
 
       Bạn PHẢI trả lời bằng đối tượng JSON, KHÔNG THÊM BẤT KỲ VĂN BẢN NÀO KHÁC.
       
       Cấu trúc JSON bắt buộc:
       {
         "summary": "string",
-        "quiz": [
-          { "question": "string", "options": ["string", "string", "string", "string"], "correctAnswer": "string" }
+        "quiz": [ 
+          { 
+            "question": "Câu hỏi ví dụ?", 
+            "options": ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C", "Lựa chọn D"], 
+            "correctAnswer": "Lựa chọn B" // Phải khớp 100% với một option ở trên
+          } 
         ],
-        "searchKeywords": ["từ khóa 1", "từ khóa 2"] 
+        "searchKeywords": ["từ khóa 1", "từ khóa 2"],
+        "mindMapMermaid": "graph TD\\nA --> B"
       }
 
       ---
@@ -170,7 +168,7 @@ export default async function handler(
       ---
     `;
 
-    // 3. Xử lý kết quả Gemini
+    // 4. Xử lý kết quả Gemini
     const result = await model.generateContent(prompt);
     const response = result.response;
     let responseText = response.text();
@@ -181,12 +179,19 @@ export default async function handler(
     
     try {
       geminiData = JSON.parse(responseText);
+       // --- THÊM DEBUG LOG ĐỂ KIỂM TRA DỮ LIỆU THÔ ---
+      //  console.log("Dữ liệu JSON thô từ Gemini:", geminiData);
+      //  if (geminiData.quiz && geminiData.quiz.length > 0) {
+      //      console.log("Câu hỏi 1 - Options:", geminiData.quiz[0].options);
+      //      console.log("Câu hỏi 1 - CorrectAnswer:", geminiData.quiz[0].correctAnswer);
+      //  }
+       // --- KẾT THÚC DEBUG LOG ---
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError);
       throw new Error('AI trả về kết quả không hợp lệ.');
     }
 
-    // 4. GỌI API MEDIA (Song song)
+    // 5. GỌI API MEDIA (Song song)
     const keywords = (geminiData.searchKeywords || []).join(' ');
 
     const [relatedVideos, relatedImages] = await Promise.all([
@@ -194,12 +199,13 @@ export default async function handler(
         fetchPexelsImages(keywords)
     ]);
 
-    // 5. Gửi phản hồi cuối cùng
+    // 6. Gửi phản hồi cuối cùng
     const finalResponse: AiResponse = {
         summary: geminiData.summary,
         quiz: geminiData.quiz,
         relatedVideos: relatedVideos,
         relatedImages: relatedImages,
+        mindMapMermaid: geminiData.mindMapMermaid,
     };
     
     res.status(200).json(finalResponse);

@@ -6,24 +6,25 @@ export type QuizQuestion = {
   correctAnswer: string;
 };
 
-// Kiểu dữ liệu cho media
 export type MediaSuggestion = {
   title: string;
   url: string;
   thumbnailUrl: string; // Dùng cho ảnh/video
 };
 
-// --- CẬP NHẬT: Kiểu dữ liệu AI trả về cho Frontend ---
+// --- Kiểu dữ liệu AI trả về cho Frontend ---
 export type AiResponse = {
   summary: string;
   quiz: QuizQuestion[];
   relatedVideos: MediaSuggestion[];
   relatedImages: MediaSuggestion[];
+  mindMapMermaid: string; // Chuỗi cú pháp Mermaid
 };
 
 // --- (NỘI BỘ): Kiểu dữ liệu Gemini trả về ---
 export type GeminiInternalResponse = {
   summary: string;
   quiz: QuizQuestion[];
-  searchKeywords: string[]; // Thêm trường keywords
+  searchKeywords: string[];
+  mindMapMermaid: string;
 }
