@@ -1,13 +1,14 @@
 "use client";
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AiResponse } from '../types';
+import { AiResponse } from '../types'; // Đảm bảo file types đã được cập nhật
 import QuizComponent from '../components/QuizComponent';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
-import { Upload, FileText, Brain, Image as ImageIcon, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+// --- THÊM ICON 'Video' ---
+import { Upload, FileText, Brain, Image as ImageIcon, AlertCircle, Loader2, CheckCircle, Video } from 'lucide-react';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -194,7 +195,7 @@ export default function Home() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Đang phân tích (1-2 phút)...
+                  Đang phân tích & tìm kiếm (1-2 phút)...
                 </>
               ) : (
                 <>
@@ -222,8 +223,45 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Generated Images */}
-            {aiResult.generatedImageUrls && aiResult.generatedImageUrls.length > 0 && (
+            {/* === KHỐI MỚI: VIDEO LIÊN QUAN === */}
+            {aiResult.relatedVideos && aiResult.relatedVideos.length > 0 && (
+              <Card className="shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="w-6 h-6 text-red-500" />
+                    Video liên quan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {aiResult.relatedVideos.map((video, i) => (
+                      <a
+                        key={i}
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative group overflow-hidden rounded-lg shadow-lg block"
+                      >
+                        <img
+                          src={video.thumbnailUrl}
+                          alt={video.title}
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Video className="w-12 h-12 text-white" />
+                        </div>
+                        <p className="p-2 text-sm font-medium text-gray-800 truncate bg-white" title={video.title}>
+                          {video.title}
+                        </p>
+                      </a>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* === KHỐI MỚI: HÌNH ẢNH MINH HỌA === */}
+            {aiResult.relatedImages && aiResult.relatedImages.length > 0 && (
               <Card className="shadow-xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -233,17 +271,23 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {aiResult.generatedImageUrls.map((url, i) => (
-                      <div key={i} className="relative group overflow-hidden rounded-lg shadow-lg">
+                    {aiResult.relatedImages.map((image, i) => (
+                      <a
+                        key={i}
+                        href={image.url} // Link tới trang Pexels
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative group overflow-hidden rounded-lg shadow-lg block"
+                      >
                         <img
-                          src={url}
-                          alt={`Ảnh minh họa ${i + 1}`}
+                          src={image.thumbnailUrl} // Link ảnh trực tiếp
+                          alt={image.title}
                           className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
                         />
                         <Badge className="absolute top-2 right-2">
-                          Ảnh {i + 1}
+                          {image.title}
                         </Badge>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </CardContent>

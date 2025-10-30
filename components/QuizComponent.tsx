@@ -169,18 +169,18 @@ export default function QuizComponent({ questions }: QuizProps) {
               onClick={() => handleAnswerClick(option)}
               disabled={!!selectedAnswer}
               variant={getButtonVariant(option)}
-              className={`w-full justify-start text-left h-auto py-4 px-6 ${getButtonClassName(option)}`}
+              className={`w-full justify-start text-left h-auto py-4 px-6 whitespace-normal break-words ${getButtonClassName(option)}`}
             >
-              <span className="flex items-center gap-3 w-full">
-                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-semibold">
+              <span className="flex items-start gap-3 w-full">
+                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-semibold mt-0.5">
                   {String.fromCharCode(65 + index)}
                 </span>
-                <span className="flex-1">{option}</span>
+                <span className="flex-1 break-words">{option}</span>
                 {selectedAnswer && option === currentQuestion.correctAnswer && (
-                  <CheckCircle2 className="w-5 h-5 text-white" />
+                  <CheckCircle2 className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                 )}
                 {selectedAnswer && option === selectedAnswer && option !== currentQuestion.correctAnswer && (
-                  <XCircle className="w-5 h-5 text-white" />
+                  <XCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                 )}
               </span>
             </Button>
